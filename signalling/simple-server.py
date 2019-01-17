@@ -264,7 +264,7 @@ if not options.disable_ssl:
 
 print("Listening on https://{}:{}".format(*ADDR_PORT))
 # Websocket server
-wsd = websockets.serve(handler, *ADDR_PORT, ssl=sslctx,
+wsd = websockets.serve(handler, *ADDR_PORT, #ssl=sslctx,
                        # Maximum number of messages that websockets will pop
                        # off the asyncio and OS buffers per connection. See:
                        # https://websockets.readthedocs.io/en/stable/api.html#websockets.protocol.WebSocketCommonProtocol

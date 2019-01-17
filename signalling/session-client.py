@@ -16,7 +16,7 @@ import websockets
 import argparse
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-parser.add_argument('--url', default='wss://localhost:8443', help='URL to connect to')
+parser.add_argument('--url', default='ws://localhost:8443', help='URL to connect to')
 parser.add_argument('--call', default=None, help='uid of peer to call')
 
 options = parser.parse_args(sys.argv[1:])
@@ -35,7 +35,8 @@ if SERVER_ADDR.startswith(('wss://', 'https://')):
 def reply_sdp_ice(msg):
     # Here we'd parse the incoming JSON message for ICE and SDP candidates
     print("Got: " + msg)
-    reply = json.dumps({'sdp': 'reply sdp'})
+    #reply = json.dumps({'sdp': 'reply sdp'})
+    reply = json.dumps({'sdp': {'type': 'answer', 'sdp': json.loads(msg)['sdp']['sdp']}})
     print("Sent: " + reply)
     return reply
 
@@ -45,7 +46,7 @@ def send_sdp_ice():
     return reply
 
 async def hello():
-    async with websockets.connect(SERVER_ADDR, ssl=sslctx) as ws:
+    async with websockets.connect(SERVER_ADDR) as ws:
         await ws.send('HELLO ' + PEER_ID)
         assert(await ws.recv() == 'HELLO')
 

@@ -33,9 +33,11 @@ class WebRTCClient:
         self.server = server or 'wss://webrtc.nirbheek.in:8443'
 
     async def connect(self):
-        sslctx = ssl.create_default_context(purpose=ssl.Purpose.CLIENT_AUTH)
+        #sslctx = ssl.create_default_context(purpose=ssl.Purpose.CLIENT_AUTH)
+        sslctx = None
         self.conn = await websockets.connect(self.server, ssl=sslctx)
         await self.conn.send('HELLO %d' % our_id)
+        print("connected with %d" % our_id)
 
     async def setup_call(self):
         await self.conn.send('SESSION {}'.format(self.peer_id))
@@ -50,7 +52,8 @@ class WebRTCClient:
     def on_offer_created(self, promise, _, __):
         promise.wait()
         reply = promise.get_reply()
-        offer = reply['offer']
+        print("{!r}".format(reply))
+        offer = reply.get_value('offer')
         promise = Gst.Promise.new()
         self.webrtc.emit('set-local-description', offer, promise)
         promise.interrupt()
