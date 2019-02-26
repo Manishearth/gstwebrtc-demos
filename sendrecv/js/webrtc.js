@@ -13,8 +13,8 @@ var ws_port;
 // Set this to use a specific peer id instead of a random one
 var default_peer_id;
 // Override with your own STUN servers if you want
-var rtc_configuration = {iceServers: [{urls: "stun:stun.services.mozilla.com"},
-                                      {urls: "stun:stun.l.google.com:19302"}]};
+var rtc_configuration = {iceServers: [
+                                      {urls: "stun://stun.l.google.com:19302"}]};
 // The default constraints that will be attempted. Can be overriden by the user.
 var default_constraints = {video: true, audio: true};
 
@@ -26,6 +26,7 @@ var ws_conn;
 var local_stream_promise;
 
 function getOurId() {
+    return 1;
     return Math.floor(Math.random() * (9000 - 10) + 10).toString();
 }
 
@@ -76,6 +77,7 @@ function resetVideo() {
 
 // SDP offer received from peer, set remote description and create an answer
 function onIncomingSDP(sdp) {
+    console.log(`sdp ${JSON.stringify(sdp)}`)
     peer_connection.setRemoteDescription(sdp).then(() => {
         setStatus("Remote SDP set");
         if (sdp.type != "offer")
@@ -94,19 +96,20 @@ function onLocalDescription(desc) {
     console.log("Got local description: " + JSON.stringify(desc));
     peer_connection.setLocalDescription(desc).then(function() {
         setStatus("Sending SDP answer");
-        sdp = {'sdp': peer_connection.localDescription}
+        sdp = {'sdp': peer_connection.localDescription }
         ws_conn.send(JSON.stringify(sdp));
     });
 }
 
 // ICE candidate received from peer, add it to the peer connection
 function onIncomingICE(ice) {
+    console.log(JSON.stringify(ice));
     var candidate = new RTCIceCandidate(ice);
-    peer_connection.addIceCandidate(candidate).catch(setError);
+    // console.log("adding candidate:" + JSON.stringify(ice))
+    peer_connection.addIceCandidate(ice).catch(setError);
 }
 
 function onServerMessage(event) {
-    console.log("Received " + event.data);
     switch (event.data) {
         case "HELLO":
             setStatus("Registered with server, waiting for call");
@@ -162,6 +165,7 @@ function onServerError(event) {
 }
 
 function getLocalStream() {
+    console.log("getting local stream");
     var constraints;
     var textarea = document.getElementById('constraints');
     try {
@@ -277,17 +281,18 @@ function createCall(msg) {
     console.log('Creating RTCPeerConnection');
 
     peer_connection = new RTCPeerConnection(rtc_configuration);
-    send_channel = peer_connection.createDataChannel('label', null);
-    send_channel.onopen = handleDataChannelOpen;
-    send_channel.onmessage = handleDataChannelMessageReceived;
-    send_channel.onerror = handleDataChannelError;
-    send_channel.onclose = handleDataChannelClose;
+    // send_channel = peer_connection.createDataChannel('label', null);
+    // send_channel.onopen = handleDataChannelOpen;
+    // send_channel.onmessage = handleDataChannelMessageReceived;
+    // send_channel.onerror = handleDataChannelError;
+    // send_channel.onclose = handleDataChannelClose;
     peer_connection.ondatachannel = onDataChannel;
     peer_connection.onaddstream = onRemoteStreamAdded;
     /* Send our video/audio to the other peer */
     local_stream_promise = getLocalStream().then((stream) => {
         console.log('Adding local stream');
         peer_connection.addStream(stream);
+        console.log("added");
         return stream;
     }).catch(setError);
 
