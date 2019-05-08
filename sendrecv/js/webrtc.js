@@ -77,7 +77,6 @@ function resetVideo() {
 
 // SDP offer received from peer, set remote description and create an answer
 function onIncomingSDP(sdp) {
-    console.log(`sdp ${JSON.stringify(sdp)}`)
     peer_connection.setRemoteDescription(sdp).then(() => {
         setStatus("Remote SDP set");
         if (sdp.type != "offer")
@@ -103,7 +102,6 @@ function onLocalDescription(desc) {
 
 // ICE candidate received from peer, add it to the peer connection
 function onIncomingICE(ice) {
-    console.log(JSON.stringify(ice));
     var candidate = new RTCIceCandidate(ice);
     // console.log("adding candidate:" + JSON.stringify(ice))
     peer_connection.addIceCandidate(ice).catch(setError);
@@ -224,14 +222,11 @@ function websocketServerConnect() {
 }
 
 function onRemoteStreamAdded(event) {
-    videoTracks = event.stream.getVideoTracks();
-    audioTracks = event.stream.getAudioTracks();
-
-    if (videoTracks.length > 0) {
-        console.log('Incoming stream: ' + videoTracks.length + ' video tracks and ' + audioTracks.length + ' audio tracks');
-        getVideoElement().srcObject = event.stream;
+    if (event.track.kind == "video") {
+        window.strm = new MediaStream([event.track]);
+        getVideoElement().srcObject = strm;
     } else {
-        handleIncomingError('Stream with unknown tracks added, resetting');
+        console.log("ignoring audio track")
     }
 }
 
@@ -287,7 +282,10 @@ function createCall(msg) {
     // send_channel.onerror = handleDataChannelError;
     // send_channel.onclose = handleDataChannelClose;
     peer_connection.ondatachannel = onDataChannel;
-    peer_connection.onaddstream = onRemoteStreamAdded;
+    peer_connection.ontrack = onRemoteStreamAdded;
+    peer_connection.onsignalingstatechange = function () {console.log("signaling" + peer_connection.signalingState)};
+    peer_connection.onicegatheringstatechange = function () {console.log("gathering" + peer_connection.iceGatheringState)};
+    peer_connection.oniceconnectionstatechange = function () {console.log("connection" + peer_connection.iceConnectionState)};
     /* Send our video/audio to the other peer */
     local_stream_promise = getLocalStream().then((stream) => {
         console.log('Adding local stream');
